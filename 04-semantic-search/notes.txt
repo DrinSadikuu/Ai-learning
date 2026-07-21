@@ -1,0 +1,7 @@
+Python is a programming language.
+JavaScript is commonly used for web development.
+React is a frontend library.
+SQLite is a lightweight relational database.
+Docker packages applications into containers.
+Embeddings convert text into numerical vectors.
+Semantic search compares meaning instead of exact words.
