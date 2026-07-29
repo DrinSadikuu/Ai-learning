@@ -3,6 +3,7 @@ from typing import Any
 
 from config import create_openai_client
 from evaluator import evaluate_retrieval
+from logger import write_log
 from query_rewriter import rewrite_query
 from retrieval import search_documents
 from tools import SEARCH_DOCUMENTS_TOOL
@@ -13,28 +14,31 @@ MAX_TOOL_ROUNDS = 3
 
 
 AGENT_INSTRUCTIONS = """
-You are an AI assistant with access to uploaded documents.
+You are an AI assistant with access to uploaded documents and conversation
+history.
 
-Decide whether the user's question requires information from the documents.
+Decide whether the user's latest question requires information from the
+uploaded documents.
 
 Rules:
-1. Call search_documents when the user asks about information that may be
-   contained in the uploaded documents.
-2. Do not call search_documents for greetings, casual conversation,
-   general explanations, or questions that do not require the documents.
-3. When document results are provided, answer only from those results.
-4. Check whether the retrieved context explicitly answers the user's exact
+1. Use conversation history to understand follow-up questions.
+2. Call search_documents when the latest user question requires information
+   that may be contained in the uploaded documents.
+3. Do not call search_documents for greetings, casual conversation, general
+   explanations, or questions that do not require the documents.
+4. When document results are provided, answer only from those results.
+5. Check whether the retrieved context explicitly answers the user's exact
    question.
-5. A retrieval result contains an evaluation object.
-6. Use document results only when evaluation.is_relevant is true.
-7. If evaluation.is_relevant is false, do not use or cite the retrieved chunks.
-8. If the documents do not contain enough information, respond with exactly:
+6. A retrieval result contains an evaluation object.
+7. Use document results only when evaluation.is_relevant is true.
+8. If evaluation.is_relevant is false, do not use or cite the chunks.
+9. If the documents do not contain enough information, respond with exactly:
    "The uploaded documents do not provide enough information to answer that."
-   Do not add explanations and do not ask a follow-up question.
-9. Include citations using this format:
-   [filename, page X]
-10. Never invent document facts, personal facts, or citations.
-11. Do not repeatedly search for the same unsupported information.
+   Do not add explanations or ask follow-up questions.
+10. Include citations using this format:
+    [filename, page X]
+11. Never invent document facts, personal facts, or citations.
+12. Do not repeatedly search using the same query.
 """
 
 
@@ -45,13 +49,6 @@ def execute_tool(
 ) -> dict[str, Any]:
     """
     Execute a tool requested by the model.
-
-    For search_documents:
-    1. Read the model's search query.
-    2. Rewrite it into a clearer semantic-search query.
-    3. Retrieve relevant document chunks.
-    4. Evaluate whether the chunks answer the original question.
-    5. Return only relevant chunks to the agent.
     """
 
     if tool_name != "search_documents":
@@ -63,7 +60,9 @@ def execute_tool(
         arguments.get("query", "")
     ).strip()
 
-    query_to_rewrite = model_query or original_question
+    query_to_rewrite = (
+        model_query or original_question
+    )
 
     rewritten_query = rewrite_query(
         question=query_to_rewrite
@@ -104,9 +103,11 @@ def execute_tool(
     }
 
 
-def get_function_calls(response: Any) -> list[Any]:
+def get_function_calls(
+    response: Any,
+) -> list[Any]:
     """
-    Extract all function calls from an OpenAI response.
+    Extract function calls from an OpenAI response.
     """
 
     return [
@@ -116,10 +117,34 @@ def get_function_calls(response: Any) -> list[Any]:
     ]
 
 
-def run_agent(question: str) -> str:
+def build_conversation_input(
+    conversation_history: list[dict[str, str]],
+    current_question: str,
+) -> list[dict[str, str]]:
     """
-    Run the agent until it returns a text answer or reaches
-    the maximum number of tool-call rounds.
+    Combine previous messages with the current question.
+    """
+
+    conversation_input = list(
+        conversation_history
+    )
+
+    conversation_input.append(
+        {
+            "role": "user",
+            "content": current_question,
+        }
+    )
+
+    return conversation_input
+
+
+def run_agent(
+    question: str,
+    conversation_history: list[dict[str, str]] | None = None,
+) -> str:
+    """
+    Run the agent and log its decisions.
     """
 
     cleaned_question = question.strip()
@@ -129,35 +154,53 @@ def run_agent(question: str) -> str:
             "Question cannot be empty."
         )
 
+    if conversation_history is None:
+        conversation_history = []
+
     client = create_openai_client()
+
+    conversation_input = build_conversation_input(
+        conversation_history=conversation_history,
+        current_question=cleaned_question,
+    )
 
     response = client.responses.create(
         model=MODEL,
         instructions=AGENT_INSTRUCTIONS,
-        input=cleaned_question,
+        input=conversation_input,
         tools=[SEARCH_DOCUMENTS_TOOL],
     )
 
     used_queries: set[str] = set()
+    tool_rounds = 0
+    tool_logs: list[dict[str, Any]] = []
 
     for _ in range(MAX_TOOL_ROUNDS):
         function_calls = get_function_calls(
             response
         )
 
-        # No function call means the model returned
-        # a normal text answer.
         if not function_calls:
             answer = response.output_text.strip()
 
-            if answer:
-                return answer
+            if not answer:
+                answer = (
+                    "The assistant did not produce "
+                    "a text response."
+                )
 
-            return (
-                "The assistant did not produce "
-                "a text response."
+            write_log(
+                {
+                    "question": cleaned_question,
+                    "tool_rounds": tool_rounds,
+                    "tools": tool_logs,
+                    "final_answer": answer,
+                }
             )
 
+            return answer
+
+        tool_rounds += 1
         tool_outputs = []
 
         for function_call in function_calls:
@@ -182,44 +225,48 @@ def run_agent(question: str) -> str:
             ).strip()
 
             normalized_query = (
-                rewritten_query.lower()
+                rewritten_query.casefold()
             )
 
             if normalized_query in used_queries:
                 tool_result = {
-                    "original_question": (
-                        cleaned_question
-                    ),
-                    "rewritten_query": (
-                        rewritten_query
-                    ),
+                    "original_question": cleaned_question,
+                    "rewritten_query": rewritten_query,
                     "evaluation": {
                         "is_relevant": False,
                         "confidence": 1.0,
                         "reason": (
-                            "This query was already "
-                            "searched."
+                            "This query was already searched."
                         ),
                     },
                     "results": [],
-                    "message": (
-                        "Do not search the same "
-                        "query again."
-                    ),
                 }
             else:
                 used_queries.add(
                     normalized_query
                 )
 
+            tool_logs.append(
+                {
+                    "tool_name": function_call.name,
+                    "arguments": arguments,
+                    "rewritten_query": tool_result.get(
+                        "rewritten_query"
+                    ),
+                    "evaluation": tool_result.get(
+                        "evaluation"
+                    ),
+                    "retrieved_results": tool_result.get(
+                        "results",
+                        [],
+                    ),
+                }
+            )
+
             tool_outputs.append(
                 {
-                    "type": (
-                        "function_call_output"
-                    ),
-                    "call_id": (
-                        function_call.call_id
-                    ),
+                    "type": "function_call_output",
+                    "call_id": function_call.call_id,
                     "output": json.dumps(
                         tool_result,
                         ensure_ascii=False,
@@ -235,14 +282,22 @@ def run_agent(question: str) -> str:
             tools=[SEARCH_DOCUMENTS_TOOL],
         )
 
-    final_answer = (
-        response.output_text.strip()
+    final_answer = response.output_text.strip()
+
+    if not final_answer:
+        final_answer = (
+            "The uploaded documents do not provide "
+            "enough information to answer that."
+        )
+
+    write_log(
+        {
+            "question": cleaned_question,
+            "tool_rounds": tool_rounds,
+            "tools": tool_logs,
+            "final_answer": final_answer,
+            "max_tool_rounds_reached": True,
+        }
     )
 
-    if final_answer:
-        return final_answer
-
-    return (
-        "The uploaded documents do not provide "
-        "enough information to answer that."
-    )
+    return final_answer
