@@ -1,0 +1,35 @@
+# Environment variables
+.env
+
+# Python virtual environments
+.venv/
+venv/
+backend/.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# PyCharm
+.idea/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Logs
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Uploaded files
+backend/uploads/
+
+# Test coverage
+.coverage
+htmlcov/
