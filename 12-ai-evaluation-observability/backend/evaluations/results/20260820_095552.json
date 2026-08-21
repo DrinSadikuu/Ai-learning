@@ -1,0 +1,71 @@
+{
+  "timestamp": "2026-08-20T09:55:52.138650+00:00",
+  "model": "gpt-5.6",
+  "summary": {
+    "total_tests": 5,
+    "passed": 5,
+    "failed": 0,
+    "pass_rate": 1.0,
+    "average_correctness": 100.0,
+    "average_relevance": 100.0,
+    "average_conciseness": 94.6,
+    "average_overall": 98.2
+  },
+  "tests": [
+    {
+      "question": "What is artificial intelligence?",
+      "expected_answer": "Artificial intelligence is the ability of computer systems to perform tasks that normally require human intelligence.",
+      "answer": "Artificial intelligence (AI) is the field of creating computer systems that can perform tasks that typically require human intelligence. These tasks include:\n\n- Understanding and generating language\n- Recognizing images and speech\n- Learning from data\n- Solving problems and making decisions\n- Planning and controlling robots\n\nMost modern AI uses **machine learning**, where systems learn patterns from examples rather than being explicitly programmed for every situation. Generative AI, for example, learns from large datasets to create text, images, audio, or code.\n\nAI does not necessarily think or understand like a human; it generally predicts or acts based on patterns, algorithms, and its training data.",
+      "correctness": 100,
+      "relevance": 100,
+      "conciseness": 92,
+      "overall_score": 97.33,
+      "passed": true,
+      "reasoning": "The answer accurately defines artificial intelligence in line with the expected answer and adds correct examples and useful context about machine learning and generative AI. It directly addresses the question and is well organized. It is slightly more detailed than necessary for such a basic definitional question, but the added information remains relevant and reasonably concise."
+    },
+    {
+      "question": "What does HTTP stand for?",
+      "expected_answer": "HTTP stands for Hypertext Transfer Protocol.",
+      "answer": "HTTP stands for **Hypertext Transfer Protocol**. It is the protocol used to transfer data between web browsers and servers.",
+      "correctness": 100,
+      "relevance": 100,
+      "conciseness": 98,
+      "overall_score": 99.33,
+      "passed": true,
+      "reasoning": "The answer gives the exact correct expansion of HTTP and directly addresses the question. The additional sentence is accurate and brief, though slightly beyond what was strictly required."
+    },
+    {
+      "question": "What is the capital of France?",
+      "expected_answer": "The capital of France is Paris.",
+      "answer": "The capital of France is Paris.",
+      "correctness": 100,
+      "relevance": 100,
+      "conciseness": 100,
+      "overall_score": 100.0,
+      "passed": true,
+      "reasoning": "The answer is factually correct, directly addresses the question, and is concise with no unnecessary information."
+    },
+    {
+      "question": "What is Python?",
+      "expected_answer": "Python is a high-level general-purpose programming language.",
+      "answer": "Python is a popular, high-level programming language known for its readable syntax and versatility.\n\nIt is commonly used for:\n\n- Web development\n- Data analysis and visualization\n- Artificial intelligence and machine learning\n- Automation and scripting\n- Scientific computing\n- Desktop applications\n\nExample:\n\n```python\nprint(\"Hello, world!\")\n```\n\nPython is interpreted, open source, and supported by a large ecosystem of libraries and frameworks. Its simplicity makes it beginner-friendly, while its capabilities make it widely used by professional developers.",
+      "correctness": 100,
+      "relevance": 100,
+      "conciseness": 88,
+      "overall_score": 96.0,
+      "passed": true,
+      "reasoning": "The answer correctly identifies Python as a high-level, versatile programming language and accurately describes its common uses and characteristics. It directly answers the question, though it provides more detail than the simple definition requested; the examples and feature list are useful but slightly reduce conciseness."
+    },
+    {
+      "question": "What is a database?",
+      "expected_answer": "A database is an organized collection of data that can be stored, accessed, and managed electronically.",
+      "answer": "A **database** is an organized collection of information stored electronically so it can be easily accessed, updated, searched, and managed.\n\nFor example, a customer database might store:\n\n- Names\n- Email addresses\n- Orders\n- Payment records\n\nDatabases are typically managed using a **Database Management System (DBMS)**, such as MySQL, PostgreSQL, SQLite, or Microsoft SQL Server. Applications interact with the DBMS to add, retrieve, modify, or delete data.",
+      "correctness": 100,
+      "relevance": 100,
+      "conciseness": 95,
+      "overall_score": 98.33,
+      "passed": true,
+      "reasoning": "The answer accurately defines a database as an organized, electronically stored collection of information that can be accessed and managed. The example and brief DBMS explanation are directly relevant and helpful. It is slightly more detailed than necessary for such a simple question, but remains focused and reasonably concise."
+    }
+  ]
+}
